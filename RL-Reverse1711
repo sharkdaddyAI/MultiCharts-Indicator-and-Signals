@@ -207,5 +207,3 @@ buytocover ("SX-Xsupport") next bar at Dn_Trendsupport Limit;
 if status=3  then
 buytocover ("SX-StatusEnd") next bar at market;
 end;
-
-{================================Stop Loss======================================}
