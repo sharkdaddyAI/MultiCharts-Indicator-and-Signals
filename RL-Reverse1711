@@ -1,0 +1,211 @@
+{Reverse trading when no trend and trading trending direction}
+
+inputs: gainPercent(0.005), minSlope(0.0015), TradeStartTime(1800), TradeEndTime(1555), MaxFailBars(8), StdDev_Len(36);
+
+
+{============================== Up Trend ===================================}
+
+variables: StdDev_adjust(0), TrendSupport(0), TrendResistant(0), StartDate(0), StartTime(0), StartPrice(1), StartBar(0), Status(1);
+
+{Calculate Trend Support & Resistant using regression line & StdDev}
+StdDev_adjust = StdDev(c,StdDev_Len);
+TrendSupport = LinearRegValue( (O+C)/2, currentbar-Startbar, 0 ) - StdDev_adjust ;
+TrendResistant = LinearRegValue( (O+C)/2, currentbar-Startbar, 0 ) + StdDev_adjust ;
+
+{status 1 = no trend, status 2 = possible trend, status 3 = confirm trend, status 4 = possible end trend}
+
+{Possible Trend Starts}
+Condition1 = C crosses over VWPA(c,100);
+Condition2 = VWPA(c,200)<VWPA(c,60) and VWPA(c,60)<VWPA(c,20) and VWPA(c,20)<C;
+
+if status=1 and (condition1 or condition2) then
+Begin
+StartPrice = open ;
+StartDate = Date;
+StartTime = Time;
+StartBar = CurrentBar;
+status = 2;
+end;
+
+{Failed Trend Confirmation, return to status 1}
+Condition10 = currentbar>StartBar and C < StartPrice;
+Condition11 = currentbar-StartBar>60 and (close - StartPrice)/close < 0.002;
+Condition12 = close<(highest(high,currentbar-startbar)-StartPrice)*.314+StartPrice and close<VWPA(c,60);
+
+if status = 2 and currentbar-Startbar>0 then
+if Condition10 or Condition11 or Condition12 then
+status =1;
+
+{Trend confirmed}
+
+Condition15 = (close - StartPrice)/StartPrice > gainPercent;
+
+if status = 2 and Condition15 then
+status = 3;
+
+{Direct Confirm Reverse Trend}
+Condition16 = C < StartPrice;
+if status = 3 and condition16 then
+status = 1;
+
+{Possible End of Trend}
+
+Condition20 = VWPA(c,20) > VWPA(c,200) and LinearRegSlope( (o+c)/2, currentbar-Startbar) <= minSlope;
+Condition21 = CurrentBar-StartBar > 30 and VWPA(c,20)[2]< TrendSupport[2] and VWPA(c,20)[1]< TrendSupport[1] and VWPA(c,20)< TrendSupport;
+Condition22 = currentbar-startbar > 30 and TrendSupport[1]<VWPA(c,200)[1] and TrendSupport<VWPA(c,200) and VWPA(c,5)<VWPA(c,200);
+ 
+if status=3 and (condition20 or condition21 or condition22) then
+status=4;
+
+{Confirm end of trend}
+
+Condition25 = VWPA(c,5)>VWPA(c,200) and LinearRegSlope( (o+c)/2, currentbar-Startbar) >= minslope and VWPA(c,20)> TrendSupport;
+
+variable: FailCount(0);
+
+if status=4 then
+Begin
+FailCount=FailCount+1;
+
+if FailCount=MaxFailBars then
+Begin
+status=1;
+FailCount=0;
+end;
+
+if Condition25 then
+Begin 
+status=3;
+FailCount=0;
+end;
+
+end;
+
+
+{============================== Down Trend ===================================}
+
+variables: Dn_StdDev_adjust(0), Dn_TrendSupport(0), Dn_TrendResistant(0), Dn_StartDate(0), Dn_StartTime(0), Dn_StartPrice(1), Dn_StartBar(0),Dn_status(1);
+
+{Calculate Trend Support & Resistant using regression line & StdDev}
+Dn_StdDev_adjust = StdDev(c,StdDev_Len);
+Dn_TrendSupport = LinearRegValue( (O+C)/2, currentbar-Dn_Startbar, 0 ) - Dn_StdDev_adjust ;
+Dn_TrendResistant = LinearRegValue( (O+C)/2, currentbar-Dn_Startbar, 0 ) + Dn_StdDev_adjust ;
+
+{status 1 = no trend, status 2 = possible trend, status 3 = confirm trend, status 4 = possible end trend}
+
+{Possible Trend Start}
+Condition51 = C crosses under VWPA(c,100);
+Condition52 = VWPA(c,200)>VWPA(c,60) and VWPA(c,60)>VWPA(c,20) and VWPA(c,20)>C;
+
+if Dn_status=1 and (condition51 or condition52) then
+Begin
+Dn_StartPrice = open ;
+Dn_StartDate = Date;
+Dn_StartTime = Time;
+Dn_StartBar = CurrentBar;
+Dn_status = 2;
+end;
+
+{Failed Trend Confirmation, return to status 1}
+Condition60 = currentbar>Dn_StartBar and C > Dn_StartPrice;
+Condition61 = currentbar-Dn_StartBar>60 and (Dn_StartPrice-C)/C < 0.002;
+Condition62 = close>(Dn_StartPrice-lowest(low,currentbar-Dn_Startbar))*.314-Dn_StartPrice and close>VWPA(c,60);
+
+if Dn_status = 2 and currentbar-Dn_Startbar>0 then
+if Condition60 or Condition61 or Condition62 then
+Dn_status =1;
+
+{Trend Confirmed}
+
+Condition65 = (Dn_StartPrice-C)/Dn_StartPrice > gainPercent;
+
+if Dn_status = 2 and Condition65 then
+Dn_status = 3; 
+
+{Direct Confirm Reverse Trend}
+Condition66 = C > Dn_startPrice;
+if Dn_status = 3 and condition66 then
+Dn_status = 1;
+
+{Possible End of Trend}
+
+Condition70 = VWPA(c,20) < VWPA(c,200) and LinearRegSlope( (o+c)/2, currentbar-Dn_Startbar) >= -minslope;
+Condition71 = currentbar-Dn_startbar > 30 and VWPA(c,20)[2]> Dn_TrendResistant[2] and VWPA(c,20)[1]> Dn_TrendResistant[1] and VWPA(c,20)>Dn_TrendResistant;
+Condition72 = currentbar-Dn_startbar > 30 and Dn_TrendResistant[1]>VWPA(c,200)[1] and Dn_TrendResistant>VWPA(c,200) and VWPA(c,5)>VWPA(c,200);
+
+if Dn_status=3 and (condition70 or condition71 or condition72) then
+Dn_status=4;
+
+{Confirm end of Trend}
+
+Condition75 = VWPA(c,5)<VWPA(c,200) and LinearRegSlope( (o+c)/2, currentbar-Dn_Startbar) <= -minslope and VWPA(c,20)< Dn_TrendResistant;
+
+variable: Dn_FailCount(0);
+
+if Dn_status=4 then
+Begin
+Dn_FailCount=Dn_FailCount+1;
+
+if Dn_FailCount=MaxFailBars then
+Begin
+Dn_status=1;
+Dn_FailCount=0;
+end;
+
+if Condition75 then
+Begin 
+Dn_status=3;
+Dn_FailCount=0;
+end;
+
+end;
+
+input: minPoint(2);
+
+{============================== Long Entry ===================================}
+
+condition30 = time>TradeStartTime or time<TradeEndTime;
+condition31 = Dn_status<>2 and Dn_status<>3;
+condition32 = TrendSupport<Dn_TrendResistant and TrendResistant> TrendSupport + minPoint points;
+condition33 = (C[5]-C)/C < 0.01;
+condition34 = XAverage(v,6) > 100;
+
+if condition30 and condition31 and condition32 and condition33 and condition34 then
+Buy ("LE-Support") next bar at TrendSupport Limit;
+
+{============================== Long Exit ====================================}
+
+if marketposition = 1 then
+Begin 
+if time = TradeEndTime then
+Sell ("LX-EndDay") next bar at Market;
+if date=1150703 and time=1150 then
+Sell ("LX-150703") next bar at Market;
+Sell ("LX-XResis") next bar at Trendresistant Limit;
+if Dn_status=3 then
+Sell ("LX-StatusEnd") next bar at market;
+end;
+
+
+{============================== Short Entry ===================================}
+
+condition80 = time>TradeStartTime or time<TradeEndTime;
+condition81 = status<>2 and status<>3;
+condition82 = TrendSupport<Dn_TrendResistant and Dn_TrendSupport < Dn_TrendResistant - minPoint points;
+condition83 = (C-C[5])/C < 0.01;
+
+if condition80 and condition81 and condition82 and condition83 and condition34 then
+Sellshort ("SE-Resist") next bar at Dn_TrendResistant limit;
+
+{============================== Short Exit ====================================}
+
+if marketposition = -1 then
+Begin
+if time = TradeEndTime then
+buytocover ("SX-EndDay") next bar at Market;
+buytocover ("SX-Xsupport") next bar at Dn_Trendsupport Limit;
+if status=3  then
+buytocover ("SX-StatusEnd") next bar at market;
+end;
+
+{================================Stop Loss======================================}
