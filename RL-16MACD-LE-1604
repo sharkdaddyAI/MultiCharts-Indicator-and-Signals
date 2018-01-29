@@ -1,0 +1,229 @@
+{15m K, for Future: ZB, GC, CL, ES
+Logic - calculate 16 different MACD lengthes and use most profitable length to trade
+}
+
+inputs: FastLength(12), SlowLength (26), MACDLength (9), OneScale(8), dayago(800), TradeTimeStart(0630), TradeTimeEnd(1700);
+Array:OpenProfit[20](0), EnterPrice[20](0), TotalProfit[20](0), CloseProfit[20](0), MACDDiff[20](0), XdayProfit[20](0);
+variables: SLR(0), MLR(0), count(0);
+SLR=SlowLength/FastLength;
+MLR=MACDLength/FastLength;
+
+{Best MACD Calculation}
+if currentbar>dayago then
+Begin
+MACDDiff[0] = MACD ( Close, FastLength, FastLength*SLR )- XAverage ( MACD( Close, FastLength , FastLength*SLR ), FastLength*MLR  ) ;
+MACDDiff[1] = MACD ( Close, FastLength+OneScale , (FastLength+OneScale)*SLR )- XAverage ( MACD( Close, FastLength+OneScale , (FastLength+OneScale)*SLR ), (FastLength+OneScale)*MLR  ) ;
+MACDDiff[2] = MACD ( Close, FastLength+OneScale*2 , (FastLength+OneScale*2)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*2 , (FastLength+OneScale*2)*SLR ), (FastLength+OneScale*2)*MLR  ) ;
+MACDDiff[3] = MACD ( Close, FastLength+OneScale*3 , (FastLength+OneScale*3)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*3 , (FastLength+OneScale*3)*SLR ), (FastLength+OneScale*3)*MLR  ) ;
+MACDDiff[4] = MACD ( Close, FastLength+OneScale*4 , (FastLength+OneScale*4)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*4 , (FastLength+OneScale*4)*SLR ), (FastLength+OneScale*4)*MLR  ) ;
+MACDDiff[5] = MACD ( Close, FastLength+OneScale*5 , (FastLength+OneScale*5)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*5 , (FastLength+OneScale*5)*SLR ), (FastLength+OneScale*5)*MLR  ) ;
+MACDDiff[6] = MACD ( Close, FastLength+OneScale*6 , (FastLength+OneScale*6)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*6 , (FastLength+OneScale*6)*SLR ), (FastLength+OneScale*6)*MLR  ) ;
+MACDDiff[7] = MACD ( Close, FastLength+OneScale*7 , (FastLength+OneScale*7)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*7 , (FastLength+OneScale*7)*SLR ), (FastLength+OneScale*7)*MLR  ) ;
+MACDDiff[8] = MACD ( Close, FastLength+OneScale*8 , (FastLength+OneScale*8)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*8 , (FastLength+OneScale*8)*SLR ), (FastLength+OneScale*8)*MLR  ) ;
+MACDDiff[9] = MACD ( Close, FastLength+OneScale*9 , (FastLength+OneScale*9)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*9 , (FastLength+OneScale*9)*SLR ), (FastLength+OneScale*9)*MLR  ) ;
+MACDDiff[10] = MACD ( Close, FastLength+OneScale*10 , (FastLength+OneScale*10)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*10 , (FastLength+OneScale*10)*SLR ), (FastLength+OneScale*10)*MLR  ) ;
+MACDDiff[11] = MACD ( Close, FastLength+OneScale*11 , (FastLength+OneScale*11)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*11 , (FastLength+OneScale*11)*SLR ), (FastLength+OneScale*11)*MLR  ) ;
+MACDDiff[12] = MACD ( Close, FastLength+OneScale*12 , (FastLength+OneScale*12)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*12 , (FastLength+OneScale*12)*SLR ), (FastLength+OneScale*12)*MLR  ) ;
+MACDDiff[13] = MACD ( Close, FastLength+OneScale*13 , (FastLength+OneScale*13)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*13 , (FastLength+OneScale*13)*SLR ), (FastLength+OneScale*13)*MLR  ) ;
+MACDDiff[14] = MACD ( Close, FastLength+OneScale*14 , (FastLength+OneScale*14)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*14 , (FastLength+OneScale*14)*SLR ), (FastLength+OneScale*14)*MLR  ) ;
+MACDDiff[15] = MACD ( Close, FastLength+OneScale*15 , (FastLength+OneScale*15)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*15 , (FastLength+OneScale*15)*SLR ), (FastLength+OneScale*15)*MLR  ) ;
+MACDDiff[16] = MACD ( Close, FastLength+OneScale*16 , (FastLength+OneScale*16)*SLR )- XAverage ( MACD( Close, FastLength+OneScale*16 , (FastLength+OneScale*16)*SLR ), (FastLength+OneScale*16)*MLR  ) ;
+
+for count = 0 to 16
+begin
+
+if MACDdiff[count] crosses over 0 then
+EnterPrice[count] = close;
+
+if MACDDiff[count]>0 and EnterPrice[count]<>0 then
+OpenProfit[count] = (close-EnterPrice[count])*bigpointvalue;
+
+if MACDdiff[count] crosses under 0 and EnterPrice[count]<>0 then
+Begin
+CloseProfit[count] = CloseProfit[count]+(Close-EnterPrice[count])*bigpointvalue;
+EnterPrice[count]=0;
+OpenProfit[count]=0;
+end;
+
+TotalProfit[count] = CloseProfit[count] + OpenProfit[count];
+XdayProfit[count]=TotalProfit[count]-TotalProfit[count][dayago];
+end;
+
+{Search best ranking Array}
+variables:var0( 0 ),	var1( 0 );
+array: ArrayRank[6](0);
+For count = 1 to 4
+Begin
+Value1 = NthExtremesArray(XdayProfit,16,count,1,var0, var1);
+ArrayRank[count] = var1+1;
+end;
+
+end;
+
+{Best MACD inputs}
+Array: FastLen[6](36), SlowLen[6](78), MACDLen[6](27);
+if marketposition<> 1 then
+Begin
+for count = 1 to 4
+begin
+FastLen[count] = FastLength+OneScale*ArrayRank[count]; 
+SlowLen[count] = FastLen[count]*SLR; 
+MACDLen[count] = FastLen[count]*MLR; 
+end;
+end;
+
+{Buy Order Gate}
+Variables: BuyOrder(0), level(2);
+Condition4 = time>=Tradetimestart and time <=TradeTimeEnd;
+
+if XdayProfit[ArrayRank[1]]<=0 then BuyOrder=0
+else
+Begin
+BuyOrder = 1;
+level = 1;
+if XdayProfit[ArrayRank[1]]> highest(XdayProfit[ArrayRank[1]],200)*0.25 and condition4 then
+level = 2;
+if XdayProfit[ArrayRank[1]]> highest(XdayProfit[ArrayRank[1]],200)*0.5 and condition4 then
+level = 3;
+if XdayProfit[ArrayRank[1]]> highest(XdayProfit[ArrayRank[1]],200)*0.75 and condition4 then
+level = 4;
+end;
+
+{General}
+variable: MaxOrder(1), strategyNum(1), currentprofit(200);
+
+{Strategy Levels}
+Switch level 
+begin
+case 1: begin MaxOrder = 1; currentprofit=0; StrategyNum=1;  end;
+case 2: begin MaxOrder = 2; currentprofit=200; StrategyNum=2;end;
+case 3: begin MaxOrder = 2; currentprofit=400; StrategyNum=3;end;
+case 4: begin MaxOrder = 2; currentprofit=600; StrategyNum=4;end;
+end;
+
+{Best MACD Strategy}
+variables: MACDDiffX1( 0 ), MACDDiffX2(0), MACDDiffX3(0), MACDDiffX4(0), MACDDiffX11(0) , MACDDiffX12(0) , MACDDiffX13(0) , MACDDiffX14(0);
+
+MACDDiffX1 = MACD( Close, FastLen[1], SlowLen[1])- XAverage( MACD( Close, FastLen[1], SlowLen[1] ), MACDLen[1] ) ;
+MACDDiffX2 = MACD( Close, FastLen[2], SlowLen[2])- XAverage( MACD( Close, FastLen[2], SlowLen[2] ), MACDLen[2] ) ;
+MACDDiffX3 = MACD( Close, FastLen[3], SlowLen[3])- XAverage( MACD( Close, FastLen[3], SlowLen[3] ), MACDLen[3] ) ;
+MACDDiffX4 = MACD( Close, FastLen[4], SlowLen[4])- XAverage( MACD( Close, FastLen[4], SlowLen[4] ), MACDLen[4] ) ;
+MACDDiffX11 = MACD( Close, FastLen[1]*2, SlowLen[1]*2)- XAverage( MACD( Close, FastLen[1]*2, SlowLen[1]*2 ), MACDLen[1]*2 ) ;
+MACDDiffX12 = MACD( Close, FastLen[2]*2, SlowLen[2]*2)- XAverage( MACD( Close, FastLen[2]*2, SlowLen[2]*2 ), MACDLen[2]*2 ) ;
+MACDDiffX13 = MACD( Close, FastLen[3]*2, SlowLen[3]*2)- XAverage( MACD( Close, FastLen[3]*2, SlowLen[3]*2 ), MACDLen[3]*2 ) ;
+MACDDiffX14 = MACD( Close, FastLen[4]*2, SlowLen[4]*2)- XAverage( MACD( Close, FastLen[4]*2, SlowLen[4]*2 ), MACDLen[4]*2 ) ;
+
+Condition1 = BuyOrder=1;
+Condition2 = currentcontracts < MaxOrder;
+Condition3 = (marketposition = -1 and openentryprofit < currentprofit) or marketposition <> -1;
+Condition5 = average(c,100) > average(c,100)[1];
+
+{Strategy Number1}
+Condition10 = StrategyNum>=1;
+Condition11 = MACDDiffX11 > MACDDiffX11[1];
+Condition12 = MACDDiffX1 crosses over 0 or MACDDiffX1[1] crosses over 0;
+{Strategy Number2}
+Condition13 = StrategyNum>=2;
+Condition14 = MACDDiffX12 > MACDDiffX12[1];
+Condition15 = MACDDiffX2 crosses over 0 or MACDDiffX2[1] crosses over 0;
+{Strategy Number3}
+Condition16 = StrategyNum>=3;
+Condition17 = MACDDiffX13 > MACDDiffX13[1];
+Condition18 = MACDDiffX3 crosses over 0 or MACDDiffX3[1] crosses over 0;
+{Strategy Number4}
+Condition19 = StrategyNum>=4;
+Condition20 = MACDDiffX14 > MACDDiffX14[1];
+Condition21 = MACDDiffX4 crosses over 0 or MACDDiffX4[1] crosses over 0;
+
+
+{Long Entry}
+inputs: StopLen(20);
+Array: LongStop[6](0);
+
+{Strategy Number1}
+if condition4 then
+If condition1 and condition2 and condition3 and Condition10 and Condition11 and Condition12 then
+Begin
+buy ("Rank1-LE") next bar at market;
+LongStop[1] = minlist ( Lowest ( low , StopLen ), close -AvgTrueRange(14)*3);
+end
+else
+if condition1 and condition2 and condition3 and condition5 and Condition10 and Condition11 and Condition12 then
+Begin
+buy ("Rank1-LE") next bar at market;
+LongStop[1] = minlist ( Lowest ( low , StopLen ), close -AvgTrueRange(14)*3);
+end;
+
+
+{Strategy Number2}
+If condition1 and condition2 and condition3 and Condition13 and Condition14 and Condition15 then
+Begin
+buy ("Rank2-LE") next bar at market;
+LongStop[2] = minlist ( Lowest ( low , StopLen ), close -AvgTrueRange(14)*3);
+end;
+
+{Strategy Number3}
+If condition1 and condition2 and condition3 and Condition16 and Condition17 and Condition18 then
+Begin
+buy ("Rank3-LE") next bar at market;
+LongStop[3] = minlist ( Lowest ( low , StopLen ), close -AvgTrueRange(14)*3);
+end;
+
+{Strategy Number4}
+If condition1 and condition2 and condition3 and Condition19 and Condition20 and Condition21 then
+Begin
+buy ("Rank4-LE") next bar at market;
+LongStop[4] = minlist ( Lowest ( low , StopLen ), close -AvgTrueRange(14)*3);
+end;
+
+{Xbet Long Entry}
+inputs: retrace(0.8);
+variable: target(500), targetbuy(0), XbetLongStop(0);
+target = close*0.005*bigpointvalue;
+
+Condition25 = marketposition = 1 and currentcontracts = 1;
+Condition26 = contractprofit > target;
+Condition27 = close < average(close,10);
+Condition28 = barssinceentry>10 and barssinceentry<40 ;
+
+if condition1 and condition16 and Condition25 and condition26 and condition27 and condition28 then
+Begin
+targetbuy = (highest(close, barssinceentry ) - entryprice)* retrace + entryprice;
+buy ("Xbet-LE") at next bar at targetbuy Limit ;
+XbetLongStop = minlist ( Lowest ( low , StopLen), close -AvgTrueRange(14)*3);
+End;
+
+
+{Exit Strategies}
+Condition50 = MACDDiffX1 cross under 0 ;
+Condition51 = MACDDiffX2 cross under 0 ;
+Condition52 = MACDDiffX3 cross under 0 ;
+Condition53 = MACDDiffX4 cross under 0 ;
+
+{MACD Exit Strategy}
+If marketposition = 1 then
+Begin
+If condition50 then
+Begin
+sell ("Rank1-LX") from entry ("Rank1-LE") next bar at market;
+sell ("Xbet-LX") from entry ("Xbet-LE") next bar at market;
+end;
+If condition51 then
+sell ("Rank2-LX") from entry ("Rank2-LE") next bar at market;
+If condition52 then
+sell ("Rank3-LX") from entry ("Rank3-LE") next bar at market;
+If condition53 then
+sell ("Rank4-LX") from entry ("Rank4-LE") next bar at market;
+end;
+
+{stoploss strategy}
+If marketposition = 1 then
+begin
+Sell("R1-Stop") from entry ("Rank1-LE") next bar at LongStop[1] stop ;
+Sell("R2-Stop") from entry ("Rank2-LE") next bar at LongStop[2] stop ;
+Sell("R3-Stop") from entry ("Rank3-LE") next bar at LongStop[3] stop ;
+Sell("R4-Stop") from entry ("Rank4-LE") next bar at LongStop[4] stop ;
+Sell("Xbet-Stop") from entry ("Xbet-LE") next bar at XbetLongStop stop ;
+end;
+
+
